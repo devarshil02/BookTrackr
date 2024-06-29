@@ -2,101 +2,53 @@ const { sendResponse, messages } = require("../../helpers/handleResponse");
 const Joi = require("joi");
 const jwt = require("jsonwebtoken");
 const User = require("../../models/user.modal");
-const { verifyHash } = require("../../helpers/hash");
 const makeMongoDbServiceUser = require("../../services/db/dbService")({
   model: User,
 });
 
+// Function to parse JWT token
+function parseJwt(token) {
+  var base64Url = token.split('.')[1];
+  var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  var jsonPayload = Buffer.from(base64, 'base64').toString('utf8');
+  return JSON.parse(jsonPayload);
+}
+
 exports.handler = async (req, res) => {
-  let user;
-
-  if (req.body.email) {
-    user = await makeMongoDbServiceUser.getSingleDocumentByQuery({
-      email: req.body.email,
-    });
-  } else if (req.body.phone) {
-    user = await makeMongoDbServiceUser.getSingleDocumentByQuery({
-      phone: req.body.phone,
-    });
+  const bearerToken = req.headers.authorization;
+  const token = bearerToken?.split(" ")[1];
+  if (!token) {
+    return sendResponse(res, null, 401, messages.loginFailed());
   }
 
-  if (!user) {
-    if (req.body.email) {
-      return sendResponse(
-        res,
-        null,
-        200,
-        messages.loginFailed("Incorrect email or password")
-      );
-    } else if (req.body.phone) {
-      return sendResponse(
-        res,
-        null,
-        200,
-        messages.loginFailed("Incorrect phone or password")
-      );
-    }
+  let decodedToken;
+  try {
+    decodedToken = parseJwt(token);
+  } catch (error) {
+    return sendResponse(res, null, 401, messages.loginFailed());
   }
 
-  if (user.user_type === 1 || user.user_type === 4) {
-    return res
-      .set({ "Content-Type": "application/json" })
-      .status(401)
-      .send({
-        isSuccess: false,
-        status: "UNAUTHORIZED",
-        message: "You are not authorized to access the request",
-        data: {},
-      });
+  let query = {};
+  if (decodedToken?.email) {
+    query = { email: decodedToken.email };
   }
 
-  const passwordIsValid = await verifyHash(req.body.password, user.password);
+  let userData = await makeMongoDbServiceUser.getSingleDocumentByQuery(query);
 
-  if (!passwordIsValid) {
-    if (req.body.email) {
-      return sendResponse(
-        res,
-        null,
-        200,
-        messages.loginFailed("Incorrect email or password")
-      );
-    } else if (req.body.phone) {
-      return sendResponse(
-        res,
-        null,
-        200,
-        messages.loginFailed("Incorrect phone or password")
-      );
-    }
+  if (userData) {
+    let authToken = jwt.sign({ id: userData._id }, process.env.JWT_SECRET_KEY, { expiresIn: "90d" });
+    return sendResponse(res, null, 200, messages.loginSuccess({ token: authToken, user: userData }));
+  } else {
+    let newUser = {
+      email: decodedToken.email,
+    };
+    let newUserData = await makeMongoDbServiceUser.createDocument(newUser);
+    let authToken = jwt.sign({ id: newUserData._id }, process.env.JWT_SECRET_KEY, { expiresIn: "90d" });
+    return sendResponse(res, null, 200, messages.loginSuccess({ token: authToken, user: newUserData }));
   }
-
-  let token = jwt.sign(
-    {
-      id: user.id,
-    },
-    process.env.API_SECRET,
-    {
-      expiresIn: "90d",
-    }
-  );
-
-  let userData = await makeMongoDbServiceUser.getSingleDocumentByQuery({
-    $or: [
-      { email: req.body.email },
-      { phone: req.body.phone },
-    ]
-  }, '-password');
-
-
-  return sendResponse(res, null, 200, messages.loginSuccess({ token, userData }));
 };
 
 exports.rule = Joi.object({
-  email: Joi.string()
-    .email()
-    .allow(null)
-    .empty("")
-    .description("Email address"),
-  phone: Joi.string().allow(null).empty("").description("Phone number"),
-  password: Joi.string().required().description("Password"),
+  email: Joi.string().email().allow(null).empty("").description("Email address"),
+  password: Joi.string().optional().description("Password"),
 });
