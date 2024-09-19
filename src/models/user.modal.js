@@ -31,13 +31,7 @@ const userSchema = new mongoose.Schema({
         required: false,  //1 - Admin, 2 - Client 
         default: 2,
         enum: [1, 2]
-    },
-    isActive: {
-        type: Number,
-        required: false,  //0 - offline, 1 - online 
-        default: 0,
-        enum: [0, 1]
-    },
+    }
 }, { 
     timestamps: true,
     versionKey: false

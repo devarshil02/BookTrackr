@@ -12,7 +12,7 @@ exports.authenticateToken = (req, res, next) => {
     if (token) {
       return jwt.verify(
         token,
-        process.env.API_SECRET,
+        process.env.JWT_SECRET_KEY,
         async (err, decodedToken) => {
           if (!err) {
             const id = decodedToken.id;

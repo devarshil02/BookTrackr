@@ -11,9 +11,15 @@ exports.handler = async (req, res) => {
   const skip = page === 1 ? 0 : parseInt((page - 1) * limit);
   const startIndex = (page - 1) * limit;
   let meta = {};
-  // const { user } = req;
   const query = {};
+  const { user } = req;
+
+  if (user?.user_type === 2) {
+    query._id = user._id;
+  }
+
   const searchKey = req.query.search;
+
   if (searchKey) {
     query.$or = [
       { email: { $regex: new RegExp(searchKey, "i") } },
@@ -22,7 +28,8 @@ exports.handler = async (req, res) => {
       { phone: { $regex: new RegExp(searchKey, "i") } },
     ];
   }
-  userList = await makeMongoDbService.getDocumentByCustomAggregation([
+
+  let userList = await makeMongoDbService.getDocumentByCustomAggregation([
     {
       $match: query
     },

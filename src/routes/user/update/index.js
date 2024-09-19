@@ -13,9 +13,6 @@ const { createHash } = require("../../../helpers/hash.js");
 exports.handler = async (req, res) => {
     let userId = req.body.id;
 
-    // if (req.user.user_type === 1) {
-    //   userId = req.body.id;
-    // }
     if (!userId)
         return sendResponse(
             res,
@@ -44,9 +41,6 @@ exports.handler = async (req, res) => {
 
     if (req.body.profileImage) {
         req.body.profile_avatar = req.body.profileImage;
-    }
-    if (req.body.job) {
-        req.body.job = req.body.job;
     }
 
     const newUser = await makeMongoDbService.findOneAndUpdateDocument(
