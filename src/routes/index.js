@@ -1,19 +1,20 @@
 const authRoutes = require("./auth/index.js");
 const userRoutes = require("./user/index.js");
-// const roomsRoutes = require("./rooms/socket.index.js");
+const bookRoutes = require("./books/index.js");
 const { upload } = require("../middleware/avatar.js");
 const path = require("path");
 
 module.exports = (app) => {
   app.get("/", (req, res) => {
     res.json({
-      message: "These are dev-freelance APIs",
+      message: "These are BookTrackr APIs",
       api_health: "good",
       api_version: "V1.0.0",
     });
   });
   app.use("/v1/auth", authRoutes);
   app.use("/v1/users", userRoutes);
+  app.use("/v1/books", bookRoutes);
   app.use("/v1/upload", upload.single('image'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });

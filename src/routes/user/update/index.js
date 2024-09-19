@@ -52,13 +52,12 @@ exports.handler = async (req, res) => {
 };
 
 exports.rule = Joi.object({
-    isActive: Joi.string().valid('0', '1').optional(),
     firstName: Joi.string().optional().description("firstName"),
     lastName: Joi.string().optional().description("lastName"),
     phone: Joi.string().optional().description("phone"),
-    email: Joi.string().optional().description("email"),
+    email: Joi.string().email().optional().description("email"),
     password: Joi.string().optional().description("password"),
-    id: Joi.string().optional().description("id"),
     profileImage: Joi.any(),
-    job: Joi.array().items(Joi.string()).optional().description("job"),
+    user_type: Joi.number().valid(1, 2).optional().description("user_type"),
+    id: Joi.string().optional().description("id")
 });

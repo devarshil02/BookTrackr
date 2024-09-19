@@ -11,19 +11,23 @@ const makeMongoDbService = require("../../../services/db/dbService.js")({
 
 exports.handler = async (req, res) => {
 
-    getUser = await makeMongoDbService.getSingleDocumentByQuery({
-        email: req.body.email,
+    const existingUser = await makeMongoDbService.getSingleDocumentByQuery({
+        $or: [
+            { email: req.body.email },
+            { phone: req.body.phone }
+        ]
     });
-    if (getUser)
+
+    // If user with the same email or phone exists, return error
+    if (existingUser) {
+        let conflictField = existingUser.email === req.body.email ? "email" : "phone";
         return sendResponse(
             res,
             null,
             409,
-            messages.invalidRequest(
-                "This email is already associated with another user. Please try with another email."
-            )
+            messages.invalidRequest(`This ${conflictField} is already associated with another user. Please try with another ${conflictField}.`)
         );
-
+    }
     const encryptedPassword = await createHash(req.body.password);
     let user = {
         firstName: req.body.firstName,
