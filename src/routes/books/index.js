@@ -11,7 +11,7 @@ const deleted = require("./delete");
 
 router.post("/add", authenticateToken,validator("body", post.rule), post.handler);
 
-router.post("/get", authenticateToken,validator("body", get.rule), get.handler);
+router.post("/get",validator("body", get.rule), get.handler);
 
 router.post("/getById", authenticateToken,validator("body", getById.rule),getById.handler);
 
